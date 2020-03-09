@@ -48,11 +48,13 @@ def config():
 
     ex.observers.append(FileStorageObserver.create(logdir))
 
+    maestro_path = 'data/MAESTRO'
+
 
 @ex.automain
 def train(logdir, device, iterations, resume_iteration, checkpoint_interval, train_on, batch_size, sequence_length,
           model_complexity, learning_rate, learning_rate_decay_steps, learning_rate_decay_rate, leave_one_out,
-          clip_gradient_norm, validation_length, validation_interval):
+          clip_gradient_norm, validation_length, validation_interval, maestro_path):
     print_config(ex.current_run)
 
     os.makedirs(logdir, exist_ok=True)
@@ -66,8 +68,8 @@ def train(logdir, device, iterations, resume_iteration, checkpoint_interval, tra
         validation_groups = [str(leave_one_out)]
 
     if train_on == 'MAESTRO':
-        dataset = MAESTRO(groups=train_groups, sequence_length=sequence_length)
-        validation_dataset = MAESTRO(groups=validation_groups, sequence_length=sequence_length)
+        dataset = MAESTRO(maestro_path, groups=train_groups, sequence_length=sequence_length)
+        validation_dataset = MAESTRO(maestro_path, groups=validation_groups, sequence_length=sequence_length)
     else:
         dataset = MAPS(groups=['AkPnBcht', 'AkPnBsdf', 'AkPnCGdD', 'AkPnStgb', 'SptkBGAm', 'SptkBGCl', 'StbgTGd2'], sequence_length=sequence_length)
         validation_dataset = MAPS(groups=['ENSTDkAm', 'ENSTDkCl'], sequence_length=validation_length)

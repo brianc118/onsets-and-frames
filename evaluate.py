@@ -90,12 +90,14 @@ def evaluate(data, model, onset_threshold=0.5, frame_threshold=0.5, save_path=No
     return metrics
 
 
-def evaluate_file(model_file, dataset, dataset_group, sequence_length, save_path,
+def evaluate_file(model_file, dataset, dataset_group, dataset_path, sequence_length, save_path,
                   onset_threshold, frame_threshold, device):
     dataset_class = getattr(dataset_module, dataset)
     kwargs = {'sequence_length': sequence_length, 'device': device}
     if dataset_group is not None:
         kwargs['groups'] = [dataset_group]
+    if dataset_path is not None:
+        kwargs['path'] = dataset_path
     dataset = dataset_class(**kwargs)
 
     model = torch.load(model_file, map_location=device).eval()
@@ -114,6 +116,7 @@ if __name__ == '__main__':
     parser.add_argument('model_file', type=str)
     parser.add_argument('dataset', nargs='?', default='MAPS')
     parser.add_argument('dataset_group', nargs='?', default=None)
+    parser.add_argument('dataset_path', nargs='?', type=str, default=None)
     parser.add_argument('--save-path', default=None)
     parser.add_argument('--sequence-length', default=None, type=int)
     parser.add_argument('--onset-threshold', default=0.5, type=float)

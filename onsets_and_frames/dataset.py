@@ -130,7 +130,7 @@ class PianoRollAudioDataset(Dataset):
 
 class MAESTRO(PianoRollAudioDataset):
 
-    def __init__(self, path='data/MAESTRO', groups=None, sequence_length=None, seed=42, device=DEFAULT_DEVICE):
+    def __init__(self, path, groups=None, sequence_length=None, seed=42, device=DEFAULT_DEVICE):
         super().__init__(path, groups if groups is not None else ['train'], sequence_length, seed, device)
 
     @classmethod
