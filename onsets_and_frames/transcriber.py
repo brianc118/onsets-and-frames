@@ -1,6 +1,10 @@
 """
 A rough translation of Magenta's Onsets and Frames implementation [1].
 
+missing:
+    - Harmonic decaying weights on frame loss. See
+    https://github.com/tensorflow/magenta/blob/c514486c75e370248186c7e26771d631aeb06d3a/magenta/models/onsets_frames_transcription/model.py#L370
+
     [1] https://github.com/tensorflow/magenta/blob/master/magenta/models/onsets_frames_transcription/model.py
 """
 
