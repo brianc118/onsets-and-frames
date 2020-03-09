@@ -33,6 +33,8 @@ class PianoRollAudioDataset(Dataset):
 
         if self.sequence_length is not None:
             audio_length = len(data['audio'])
+            if audio_length < self.sequence_length:
+                raise Exception(str(index) + " " + str(audio_length) + " " + str(self.sequence_length))
             step_begin = self.random.randint(audio_length - self.sequence_length) // HOP_LENGTH
             n_steps = self.sequence_length // HOP_LENGTH
             step_end = step_begin + n_steps
