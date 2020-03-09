@@ -176,7 +176,11 @@ class MAPS(PianoRollAudioDataset):
     def files(self, group):
         flacs = glob(os.path.join(self.path, 'flac', '*_%s.flac' % group))
         tsvs = [f.replace('/flac/', '/tsv/matched/').replace('.flac', '.tsv') for f in flacs]
-
+        midis = [f.replace('/flac/', '/midi/').replace('.flac', '.mid') for f in flacs]
+        for midi_path, tsv_filename in zip(sorted(midis), sorted(tsvs)):
+            if not os.path.exists(tsv_filename):
+                midi = parse_midi(midi_path)
+                np.savetxt(tsv_filename, midi, fmt='%.6f', delimiter='\t', header='onset,offset,note,velocity')
         assert(all(os.path.isfile(flac) for flac in flacs))
         assert(all(os.path.isfile(tsv) for tsv in tsvs))
 
