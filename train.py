@@ -68,10 +68,10 @@ def train(logdir, device, iterations, resume_iteration, checkpoint_interval, tra
         validation_groups = [str(leave_one_out)]
 
     if train_on == 'MAESTRO':
-        dataset = MAESTRO(maestro_path, groups=train_groups, sequence_length=sequence_length)
+        dataset = MAESTRO(maestro_path, groups=train_groups, sequence_length=sequence_length, transform=transform_wav_audio)
         validation_dataset = MAESTRO(maestro_path, groups=validation_groups, sequence_length=sequence_length)
     else:
-        dataset = MAPS(groups=['AkPnBcht', 'AkPnBsdf', 'AkPnCGdD', 'AkPnStgb', 'SptkBGAm', 'SptkBGCl', 'StbgTGd2'], sequence_length=sequence_length)
+        dataset = MAPS(groups=['AkPnBcht', 'AkPnBsdf', 'AkPnCGdD', 'AkPnStgb', 'SptkBGAm', 'SptkBGCl', 'StbgTGd2'], sequence_length=sequence_length, transform=transform_wav_audio)
         validation_dataset = MAPS(groups=['ENSTDkAm', 'ENSTDkCl'], sequence_length=validation_length)
 
     loader = DataLoader(dataset, batch_size, shuffle=True, drop_last=True)

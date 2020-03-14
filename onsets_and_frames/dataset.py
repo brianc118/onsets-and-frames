@@ -13,11 +13,12 @@ from .midi import parse_midi
 
 
 class PianoRollAudioDataset(Dataset):
-    def __init__(self, path, groups=None, sequence_length=None, seed=42, device=DEFAULT_DEVICE):
+    def __init__(self, path, groups=None, sequence_length=None, seed=42, device=DEFAULT_DEVICE, transform=None):
         self.path = path
         self.groups = groups if groups is not None else self.available_groups()
         self.sequence_length = sequence_length
         self.device = device
+        self.transform = transform
         self.random = np.random.RandomState(seed)
 
         self.data = []
@@ -41,12 +42,18 @@ class PianoRollAudioDataset(Dataset):
 
             begin = step_begin * HOP_LENGTH
             end = begin + self.sequence_length
-
-            result['audio'] = data['audio'][begin:end].to(self.device)
+            
+            if self.transform:
+                result['audio'] = self.transform(data['audio'][begin:end].to(self.device))
+            else:
+                result['audio'] = data['audio'][begin:end].to(self.device)
             result['label'] = data['label'][step_begin:step_end, :].to(self.device)
             result['velocity'] = data['velocity'][step_begin:step_end, :].to(self.device)
         else:
-            result['audio'] = data['audio'].to(self.device)
+            if self.transform:
+                result['audio'] = self.transform(data['audio'].to(self.device))
+            else:
+                result['audio'] = data['audio'].to(self.device)
             result['label'] = data['label'].to(self.device)
             result['velocity'] = data['velocity'].to(self.device).float()
 
@@ -132,8 +139,8 @@ class PianoRollAudioDataset(Dataset):
 
 class MAESTRO(PianoRollAudioDataset):
 
-    def __init__(self, path, groups=None, sequence_length=None, seed=42, device=DEFAULT_DEVICE):
-        super().__init__(path, groups if groups is not None else ['train'], sequence_length, seed, device)
+    def __init__(self, path, groups=None, sequence_length=None, seed=42, device=DEFAULT_DEVICE, transform=None):
+        super().__init__(path, groups if groups is not None else ['train'], sequence_length, seed, device, transform)
 
     @classmethod
     def available_groups(cls):
@@ -168,8 +175,8 @@ class MAESTRO(PianoRollAudioDataset):
 
 
 class MAPS(PianoRollAudioDataset):
-    def __init__(self, path='data/MAPS', groups=None, sequence_length=None, seed=42, device=DEFAULT_DEVICE):
-        super().__init__(path, groups if groups is not None else ['ENSTDkAm', 'ENSTDkCl'], sequence_length, seed, device)
+    def __init__(self, path='data/MAPS', groups=None, sequence_length=None, seed=42, device=DEFAULT_DEVICE, transform=None):
+        super().__init__(path, groups if groups is not None else ['ENSTDkAm', 'ENSTDkCl'], sequence_length, seed, device, transform)
 
     @classmethod
     def available_groups(cls):
