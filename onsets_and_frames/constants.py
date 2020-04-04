@@ -20,3 +20,5 @@ DEFAULT_DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 audio_transform_min_noise_vol = 0.0
 audio_transform_max_noise_vol = 0.04
 audio_transform_noise_type = 'pinknoise'
+
+RUN_SHARED_PIPELINE = False

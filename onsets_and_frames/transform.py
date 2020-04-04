@@ -5,212 +5,165 @@ import random
 import sox
 import subprocess
 import tempfile
+import torch
+import torchaudio
+import logging
 
 from .constants import *
 
+logging.getLogger("sox").setLevel(logging.ERROR)
 
-# The base pipeline is a list of stages, each of which consists of a name
-# (corresponding to a SoX function) and a dictionary of parameters with name
-# (corresponding to an argument to the SoX function) and min and max values
-# along with the scale (linear or log) used to sample values. The min and max
-# values can be overridden with hparams.
-AUDIO_TRANSFORM_PIPELINE = [
-    # Pitch shift.
-    ('pitch', {
-        'n_semitones': (-0.1, 0.1, 'linear'),
-    }),
-
-    # Contrast (simple form of compression).
-    ('contrast', {
-        'amount': (0.0, 100.0, 'linear'),
-    }),
-
-    # Two independent EQ modifications.
-    ('equalizer', {
-        'frequency': (32.0, 4096.0, 'log'),
-        'width_q': (2.0, 2.0, 'linear'),
-        'gain_db': (-10.0, 5.0, 'linear'),
-    }),
-    ('equalizer', {
-        'frequency': (32.0, 4096.0, 'log'),
-        'width_q': (2.0, 2.0, 'linear'),
-        'gain_db': (-10.0, 5.0, 'linear'),
-    }),
-
+SHARED_PIPELINE = [
     # Reverb (for now just single-parameter).
-    ('reverb', {
-        'reverberance': (0.0, 70.0, 'linear'),
-    }),
+    ("reverb", {"reverberance": (0.0, 70.0, "linear"),}),
+]
+
+AUDIO_TRANSFORM_PIPELINE_TORCH = [
+    # Pitch shift.
+    ("pitch", {"n_semitones": (-0.1, 0.1, "linear"),}),
+    # Contrast (simple form of compression).
+    ("contrast", {"amount": (0.0, 100.0, "linear"),}),
+    # Two independent EQ modifications.
+    (
+        "equalizer",
+        {
+            "frequency": (32.0, 4096.0, "log"),
+            "width_q": (2.0, 2.0, "linear"),
+            "gain_db": (-10.0, 5.0, "linear"),
+        },
+    ),
+    (
+        "equalizer",
+        {
+            "frequency": (32.0, 4096.0, "log"),
+            "width_q": (2.0, 2.0, "linear"),
+            "gain_db": (-10.0, 5.0, "linear"),
+        },
+    ),
 ]
 
 
 class AudioTransformParameter:
-  """An audio transform parameter with min and max value."""
+    def __init__(self, name, min_value, max_value, scale):
+        if scale not in ("linear", "log"):
+            raise ValueError("invalid parameter scale: %s" % scale)
 
-  def __init__(self, name, min_value, max_value, scale):
-    """Initialize an AudioTransformParameter.
+        self.name = name
+        self.min_value = min_value
+        self.max_value = max_value
+        self.scale = scale
 
-    Args:
-      name: The name of the parameter. Should be the same as the name of the
-          parameter passed to sox.
-      min_value: The minimum value of the parameter, a float.
-      max_value: The maximum value of the parameter, a float.
-      scale: 'linear' or 'log', the scale with which to sample the parameter
-          value.
-
-    Raises:
-      ValueError: If `scale` is not 'linear' or 'log'.
-    """
-    if scale not in ('linear', 'log'):
-      raise ValueError('invalid parameter scale: %s' % scale)
-
-    self.name = name
-    self.min_value = min_value
-    self.max_value = max_value
-    self.scale = scale
-
-  def sample(self):
-    """Sample the parameter, returning a random value in its range.
-
-    Returns:
-      A value drawn uniformly at random between `min_value` and `max_value`.
-    """
-    if self.scale == 'linear':
-      return random.uniform(self.min_value, self.max_value)
-    else:
-      log_min_value = math.log(self.min_value)
-      log_max_value = math.log(self.max_value)
-      return math.exp(random.uniform(log_min_value, log_max_value))
+    def sample(self):
+        if self.scale == "linear":
+            return random.uniform(self.min_value, self.max_value)
+        else:
+            log_min_value = math.log(self.min_value)
+            log_max_value = math.log(self.max_value)
+            return math.exp(random.uniform(log_min_value, log_max_value))
 
 
 class AudioTransformStage:
-  """A stage in an audio transform pipeline."""
+    def __init__(self, name, params):
+        self.name = name
+        self.params = params
 
-  def __init__(self, name, params):
-    """Initialize an AudioTransformStage.
-
-    Args:
-      name: The name of the stage. Should be the same as the name of the method
-          called on a sox.Transformer object.
-      params: A list of AudioTransformParameter objects.
-    """
-    self.name = name
-    self.params = params
-
-  def apply(self, transformer):
-    """Apply this stage to a sox.Transformer object.
-
-    Args:
-      transformer: The sox.Transformer object to which this pipeline stage
-          should be applied. No audio will actually be transformed until the
-          `build` method is called on `transformer`.
-    """
-    args = dict((param.name, param.sample()) for param in self.params)
-    getattr(transformer, self.name)(**args)
+    def apply(self, transformer):
+        args = dict((param.name, param.sample()) for param in self.params)
+        getattr(transformer, self.name)(**args)
 
 
 def construct_pipeline(pipeline):
-  """Construct an audio transform pipeline from hyperparameters.
-
-  Args:
-    hparams: A tf.contrib.training.HParams object specifying hyperparameters to
-        use for audio transformation. These hyperparameters affect the min and
-        max values for audio transform parameters.
-    pipeline: A list of pipeline stages, each specified as a tuple of stage
-        name (SoX method) and a dictionary of parameters.
-
-  Returns:
-    The resulting pipeline, a list of AudioTransformStage objects.
-  """
-  return [
-      AudioTransformStage(
-          name=stage_name,
-          params=[
-              AudioTransformParameter(
-                  param_name,
-                  l,
-                  r,
-                  scale)
-              for param_name, (l, r, scale) in params_dict.items()
-          ]) for stage_name, params_dict in pipeline
-  ]
+    return [
+        AudioTransformStage(
+            name=stage_name,
+            params=[
+                AudioTransformParameter(param_name, l, r, scale)
+                for param_name, (l, r, scale) in params_dict.items()
+            ],
+        )
+        for stage_name, params_dict in pipeline
+    ]
 
 
 def run_pipeline(pipeline, input_filename, output_filename):
-  """Run an audio transform pipeline.
-
-  This will run the pipeline on an input audio file, producing an output audio
-  file. Transform parameters will be sampled at each stage.
-
-  Args:
-    pipeline: The pipeline to run, a list of AudioTransformStage objects.
-    input_filename: Path to the audio file to be transformed.
-    output_filename: Path to the resulting output audio file.
-  """
-  transformer = sox.Transformer()
-  transformer.set_globals(guard=True)
-  for stage in pipeline:
-    stage.apply(transformer)
-  transformer.build(input_filename, output_filename)
+    transformer = sox.Transformer()
+    transformer.set_globals(guard=True)
+    for stage in pipeline:
+        stage.apply(transformer)
+    transformer.build(input_filename, output_filename)
 
 
+def transform_wav_audio(
+    wav_audio, sample_rate, pipeline=AUDIO_TRANSFORM_PIPELINE_TORCH, sox_only=False
+):
+    wav_audio_dtype = wav_audio.dtype
+    wav_audio_size = wav_audio.size()
+    if wav_audio_dtype == torch.int16:
+        wav_audio = wav_audio.to(torch.float32) / (2 ** 15)
+    p = tempfile.tempdir
+    tempfile.tempdir = "/dev/shm"
+    with tempfile.NamedTemporaryFile(suffix=".wav") as temp_input:
+        torchaudio.save(temp_input.name, wav_audio, sample_rate)
 
-def add_noise(input_filename, output_filename, noise_vol, noise_type):
-  """Add noise to a wav file using sox.
+        # Add noise before all other pipeline steps.
+        noise_vol = random.uniform(
+            audio_transform_min_noise_vol, audio_transform_max_noise_vol
+        )
 
-  Args:
-    input_filename: Path to the original wav file.
-    output_filename: Path to the output wav file that will consist of the input
-        file plus noise.
-    noise_vol: The volume of the noise to add.
-    noise_type: One of "whitenoise", "pinknoise", "brownnoise".
+        if not sox_only:
+            si_in, _ = torchaudio.info(temp_input.name)
+            len_in_seconds = si_in.length / si_in.channels / si_in.rate
 
-  Raises:
-    ValueError: If `noise_type` is not one of "whitenoise", "pinknoise", or
-        "brownnoise".
-  """
-  if noise_type not in ('whitenoise', 'pinknoise', 'brownnoise'):
-    raise ValueError('invalid noise type: %s' % noise_type)
+            ec = torchaudio.sox_effects.SoxEffectsChain()
+            ec.set_input_file(temp_input.name)
+            # TODO: Allow volume of noise to be adjusted
+            # ec.append_effect_to_chain(
+            #     "synth", [len_in_seconds, audio_transform_noise_type, "mix"]
+            # )
+            # ec.append_effect_to_chain("vol", [noise_vol])
+            for feature, params_dict in pipeline:
+                ec.append_effect_to_chain(
+                    feature,
+                    [
+                        AudioTransformParameter(param_name, l, r, scale).sample()
+                        for param_name, (l, r, scale) in params_dict.items()
+                    ],
+                )
+            wav_audio, sr = ec.sox_build_flow_effects()
+            assert sr == sample_rate
 
-  args = ['sox', input_filename, '-p', 'synth', noise_type, 'vol',
-          str(noise_vol), '|', 'sox', '-m', input_filename, '-',
-          output_filename]
-  command = ' '.join(args)
+        if RUN_SHARED_PIPELINE or sox_only:
+            torchaudio.save(temp_input.name, wav_audio, sample_rate)
+            # Running pysox transformation pushes it to >5s/it
+            with tempfile.NamedTemporaryFile(suffix=".wav") as temp_output:
+                combined_pipeline = pipeline if sox_only else []
+                combined_pipeline += SHARED_PIPELINE if RUN_SHARED_PIPELINE else []
+                run_pipeline(
+                    construct_pipeline(combined_pipeline),
+                    temp_input.name,
+                    temp_output.name,
+                )
+                wav_audio, sr = torchaudio.load(temp_output.name)
+                assert sr == sample_rate
+    tempfile.tempdir = p
 
-  process_handle = subprocess.Popen(
-      command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-  process_handle.communicate()
-
-
-def transform_wav_audio(wav_audio, pipeline=None):
-  """Transform the contents of a wav file based on hyperparameters.
-
-  Args:
-    wav_audio: The contents of a wav file; this will be written to a temporary
-        file and transformed via SoX.
-    pipeline: A list of pipeline stages, each specified as a tuple of stage
-        name (SoX method) and a dictionary of parameters. If None, uses
-        `AUDIO_TRANSFORM_PIPELINE`.
-
-  Returns:
-    The contents of the wav file that results from applying the audio transform
-    pipeline to the input audio.
-  """
-
-  pipeline = construct_pipeline(
-      pipeline if pipeline is not None else AUDIO_TRANSFORM_PIPELINE)
-
-  with tempfile.NamedTemporaryFile(suffix='.wav') as temp_input_with_noise:
-    with tempfile.NamedTemporaryFile(suffix='.wav') as temp_input:
-      temp_input.write(wav_audio)
-      temp_input.flush()
-
-      # Add noise before all other pipeline steps.
-      noise_vol = random.uniform(audio_transform_min_noise_vol,
-                                 audio_transform_max_noise_vol)
-      add_noise(temp_input.name, temp_input_with_noise.name, noise_vol,
-                audio_transform_noise_type)
-
-    with tempfile.NamedTemporaryFile(suffix='.wav') as temp_output:
-      run_pipeline(pipeline, temp_input_with_noise.name, temp_output.name)
-      return temp_output.read()
+    # interpolate if size wrong
+    wav_audio = wav_audio.squeeze()
+    if (
+        wav_audio.size()[0] != wav_audio_size[0]
+        and abs(1 - wav_audio.size()[0] / wav_audio_size[0]) < 0.01
+    ):
+        # scale wav_audio to wav_audio
+        wav_audio = wav_audio.unsqueeze(0)
+        wav_audio = wav_audio.unsqueeze(0)
+        wav_audio = torch.nn.functional.interpolate(
+            wav_audio, (wav_audio_size[0])
+        ).squeeze()
+    assert (
+        wav_audio_size == wav_audio.size()
+    ), "Transformed audio size is different. Original: {}. Transformed: {}".format(
+        wav_audio_size, wav_audio.size()
+    )
+    if wav_audio_dtype == torch.int16:
+        wav_audio = wav_audio.to(wav_audio_dtype) * (2 ** 15)
+    return wav_audio

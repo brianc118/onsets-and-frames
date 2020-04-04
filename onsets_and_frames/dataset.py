@@ -44,14 +44,14 @@ class PianoRollAudioDataset(Dataset):
             end = begin + self.sequence_length
             
             if self.transform:
-                result['audio'] = self.transform(data['audio'][begin:end].to(self.device))
+                result['audio'] = self.transform(data['audio'][begin:end]).to(self.device)
             else:
                 result['audio'] = data['audio'][begin:end].to(self.device)
             result['label'] = data['label'][step_begin:step_end, :].to(self.device)
             result['velocity'] = data['velocity'][step_begin:step_end, :].to(self.device)
         else:
             if self.transform:
-                result['audio'] = self.transform(data['audio'].to(self.device))
+                result['audio'] = self.transform(data['audio']).to(self.device)
             else:
                 result['audio'] = data['audio'].to(self.device)
             result['label'] = data['label'].to(self.device)
