@@ -93,30 +93,27 @@ def run_pipeline(pipeline, input_filename, output_filename):
     transformer.build(input_filename, output_filename)
 
 
-def transform_wav_audio(
-    wav_audio, sample_rate, pipeline=AUDIO_TRANSFORM_PIPELINE_TORCH, sox_only=False
-):
+def transform_wav_audio(wav_audio, sample_rate, pipeline, sox_only=False):
+    prev_tempdir = tempfile.tempdir
+    tempfile.tempdir = "/dev/shm"
+
     wav_audio_dtype = wav_audio.dtype
     wav_audio_size = wav_audio.size()
     if wav_audio_dtype == torch.int16:
         wav_audio = wav_audio.to(torch.float32) / (2 ** 15)
-    p = tempfile.tempdir
-    tempfile.tempdir = "/dev/shm"
     with tempfile.NamedTemporaryFile(suffix=".wav") as temp_input:
         torchaudio.save(temp_input.name, wav_audio, sample_rate)
 
-        # Add noise before all other pipeline steps.
-        noise_vol = random.uniform(
-            audio_transform_min_noise_vol, audio_transform_max_noise_vol
-        )
-
         if not sox_only:
-            si_in, _ = torchaudio.info(temp_input.name)
-            len_in_seconds = si_in.length / si_in.channels / si_in.rate
-
             ec = torchaudio.sox_effects.SoxEffectsChain()
             ec.set_input_file(temp_input.name)
             # TODO: Allow volume of noise to be adjusted
+            # si_in, _ = torchaudio.info(temp_input.name)
+            # len_in_seconds = si_in.length / si_in.channels / si_in.rate
+            # Add noise before all other pipeline steps.
+            # noise_vol = random.uniform(
+            #     audio_transform_min_noise_vol, audio_transform_max_noise_vol
+            # )
             # ec.append_effect_to_chain(
             #     "synth", [len_in_seconds, audio_transform_noise_type, "mix"]
             # )
@@ -145,8 +142,6 @@ def transform_wav_audio(
                 )
                 wav_audio, sr = torchaudio.load(temp_output.name)
                 assert sr == sample_rate
-    tempfile.tempdir = p
-
     # interpolate if size wrong
     wav_audio = wav_audio.squeeze()
     if (
@@ -154,16 +149,21 @@ def transform_wav_audio(
         and abs(1 - wav_audio.size()[0] / wav_audio_size[0]) < 0.01
     ):
         # scale wav_audio to wav_audio
+        if wav_audio.size()[0] > wav_audio_size[0]:
+            wav_audio = wav_audio[: wav_audio_size[0]]
+        else:
+            m = torch.nn.ConstantPad1d((0, wav_audio_size[0] - wav_audio.size()[0]), 0)
+            wav_audio = m(wav_audio)
+    if len(wav_audio_size) > len(wav_audio.size()):
         wav_audio = wav_audio.unsqueeze(0)
-        wav_audio = wav_audio.unsqueeze(0)
-        wav_audio = torch.nn.functional.interpolate(
-            wav_audio, (wav_audio_size[0])
-        ).squeeze()
+
     assert (
         wav_audio_size == wav_audio.size()
     ), "Transformed audio size is different. Original: {}. Transformed: {}".format(
         wav_audio_size, wav_audio.size()
     )
     if wav_audio_dtype == torch.int16:
-        wav_audio = wav_audio.to(wav_audio_dtype) * (2 ** 15)
+        wav_audio = wav_audio * (2 ** 15)
+        wav_audio = wav_audio.to(torch.int16)
+    tempfile.tempdir = prev_tempdir
     return wav_audio
