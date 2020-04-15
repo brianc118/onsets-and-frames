@@ -49,12 +49,41 @@ def config():
     ex.observers.append(FileStorageObserver.create(logdir))
 
     maestro_path = 'data/MAESTRO'
+    evaluate_maestro_path = 'data/MAESTRO'
+
+    transform_audio_pipeline = [
+        # Pitch shift.
+        ("pitch", {"n_semitones": (-0.1, 0.1, "linear"),}),
+        # Contrast (simple form of compression).
+        ("contrast", {"amount": (0.0, 100.0, "linear"),}),
+        # Two independent EQ modifications.
+        (
+            "equalizer",
+            {
+                "frequency": (32.0, 4096.0, "log"),
+                "width_q": (2.0, 2.0, "linear"),
+                "gain_db": (-10.0, 5.0, "linear"),
+            },
+        ),
+        (
+            "equalizer",
+            {
+                "frequency": (32.0, 4096.0, "log"),
+                "width_q": (2.0, 2.0, "linear"),
+                "gain_db": (-10.0, 5.0, "linear"),
+            },
+        ),
+    ]
+
+    transform_audio = False
+    sox_only = False
 
 
 @ex.automain
 def train(logdir, device, iterations, resume_iteration, checkpoint_interval, train_on, batch_size, sequence_length,
           model_complexity, learning_rate, learning_rate_decay_steps, learning_rate_decay_rate, leave_one_out,
-          clip_gradient_norm, validation_length, validation_interval, maestro_path):
+          clip_gradient_norm, validation_length, validation_interval, maestro_path, evaluate_maestro_path,
+          transform_audio_pipeline, transform_audio, sox_only):
     print_config(ex.current_run)
 
     os.makedirs(logdir, exist_ok=True)
@@ -67,11 +96,14 @@ def train(logdir, device, iterations, resume_iteration, checkpoint_interval, tra
         train_groups = list(all_years - {str(leave_one_out)})
         validation_groups = [str(leave_one_out)]
 
+    transform = None
+    if transform_audio:
+        transform = lambda x: transform_wav_audio(x, SAMPLE_RATE, transform_audio_pipeline, sox_only=sox_only)
     if train_on == 'MAESTRO':
-        dataset = MAESTRO(maestro_path, groups=train_groups, sequence_length=sequence_length, transform=transform_wav_audio)
-        validation_dataset = MAESTRO(maestro_path, groups=validation_groups, sequence_length=sequence_length)
+        dataset = MAESTRO(maestro_path, groups=train_groups, sequence_length=sequence_length, transform=transform)
+        validation_dataset = MAESTRO(evaluate_maestro_path, groups=validation_groups, sequence_length=sequence_length)
     else:
-        dataset = MAPS(groups=['AkPnBcht', 'AkPnBsdf', 'AkPnCGdD', 'AkPnStgb', 'SptkBGAm', 'SptkBGCl', 'StbgTGd2'], sequence_length=sequence_length, transform=transform_wav_audio)
+        dataset = MAPS(groups=['AkPnBcht', 'AkPnBsdf', 'AkPnCGdD', 'AkPnStgb', 'SptkBGAm', 'SptkBGCl', 'StbgTGd2'], sequence_length=sequence_length, transform=transform)
         validation_dataset = MAPS(groups=['ENSTDkAm', 'ENSTDkCl'], sequence_length=validation_length)
 
     loader = DataLoader(dataset, batch_size, shuffle=True, drop_last=True)
