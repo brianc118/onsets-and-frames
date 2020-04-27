@@ -48,7 +48,9 @@ def config():
 
     ex.observers.append(FileStorageObserver.create(logdir))
 
-    maestro_path = 'data/MAESTRO'
+    maestro_paths = ['data/MAESTRO']
+    maestro_probabilities = [1]
+
     evaluate_maestro_path = 'data/MAESTRO'
 
     transform_audio_pipeline = [
@@ -82,7 +84,7 @@ def config():
 @ex.automain
 def train(logdir, device, iterations, resume_iteration, checkpoint_interval, train_on, batch_size, sequence_length,
           model_complexity, learning_rate, learning_rate_decay_steps, learning_rate_decay_rate, leave_one_out,
-          clip_gradient_norm, validation_length, validation_interval, maestro_path, evaluate_maestro_path,
+          clip_gradient_norm, validation_length, validation_interval, maestro_paths, maestro_probabilities, evaluate_maestro_path,
           transform_audio_pipeline, transform_audio, sox_only):
     print_config(ex.current_run)
 
@@ -100,7 +102,7 @@ def train(logdir, device, iterations, resume_iteration, checkpoint_interval, tra
     if transform_audio:
         transform = lambda x: transform_wav_audio(x, SAMPLE_RATE, transform_audio_pipeline, sox_only=sox_only)
     if train_on == 'MAESTRO':
-        dataset = MAESTRO(maestro_path, groups=train_groups, sequence_length=sequence_length, transform=transform)
+        dataset = ShuffledDataset([MAESTRO(maestro_path, groups=train_groups, sequence_length=sequence_length, transform=transform) for maestro_path in maestro_paths], maestro_probabilities)
         validation_dataset = MAESTRO(evaluate_maestro_path, groups=validation_groups, sequence_length=sequence_length)
     else:
         dataset = MAPS(groups=['AkPnBcht', 'AkPnBsdf', 'AkPnCGdD', 'AkPnStgb', 'SptkBGAm', 'SptkBGCl', 'StbgTGd2'], sequence_length=sequence_length, transform=transform)

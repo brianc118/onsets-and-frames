@@ -25,7 +25,7 @@ class PianoRollAudioDataset(Dataset):
         print(f"Loading {len(groups)} group{'s' if len(groups) > 1 else ''} "
               f"of {self.__class__.__name__} at {path}")
         for group in groups:
-            for input_files in tqdm(self.files(group), desc='Loading group %s' % group):
+            for input_files in tqdm(self.files(group), desc=f"Loading group {group} from {path}"):
                 self.data.append(self.load(*input_files))
 
     def __getitem__(self, index):
@@ -194,3 +194,19 @@ class MAPS(PianoRollAudioDataset):
         assert(all(os.path.isfile(tsv) for tsv in tsvs))
 
         return sorted(zip(flacs, tsvs))
+
+class ShuffledDataset(Dataset):
+    def __init__(self, datasets, probabilities):
+        assert(sum(probabilities) == 1)
+        assert(all(p >= 0 for p in probabilities))
+        assert(len(datasets) > 0)
+        assert(all(len(dataset) == len(datasets[0]) for dataset in datasets))
+        self.datasets = datasets
+        self.probabilities = probabilities
+
+    def __getitem__(self, index):
+        i = np.random.choice(len(self.datasets), 1, p=self.probabilities)[0].item()
+        return self.datasets[i][index]
+
+    def __len__(self):
+        return len(self.datasets[0])
