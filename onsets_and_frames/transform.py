@@ -93,6 +93,22 @@ def run_pipeline(pipeline, input_filename, output_filename):
     transformer.build(input_filename, output_filename)
 
 
+def scale_audio_to_size(wav_audio, size, dim):
+    wav_audio = wav_audio.squeeze()
+    if (
+        wav_audio.size()[0] != size[dim]
+        and abs(1 - wav_audio.size()[0] / size[dim]) < 0.01
+    ):
+        if wav_audio.size()[0] > size[dim]:
+            wav_audio = wav_audio[: size[dim]]
+        else:
+            m = torch.nn.ConstantPad1d((0, size[dim] - wav_audio.size()[0]), 0)
+            wav_audio = m(wav_audio)
+    if len(size) > len(wav_audio.size()):
+        wav_audio = wav_audio.unsqueeze(0)
+    return wav_audio
+
+
 def transform_wav_audio(wav_audio, sample_rate, pipeline, sox_only=False):
     prev_tempdir = tempfile.tempdir
     tempfile.tempdir = "/dev/shm"
@@ -142,20 +158,9 @@ def transform_wav_audio(wav_audio, sample_rate, pipeline, sox_only=False):
                 )
                 wav_audio, sr = torchaudio.load(temp_output.name)
                 assert sr == sample_rate
-    # interpolate if size wrong
-    wav_audio = wav_audio.squeeze()
-    if (
-        wav_audio.size()[0] != wav_audio_size[0]
-        and abs(1 - wav_audio.size()[0] / wav_audio_size[0]) < 0.01
-    ):
-        # scale wav_audio to wav_audio
-        if wav_audio.size()[0] > wav_audio_size[0]:
-            wav_audio = wav_audio[: wav_audio_size[0]]
-        else:
-            m = torch.nn.ConstantPad1d((0, wav_audio_size[0] - wav_audio.size()[0]), 0)
-            wav_audio = m(wav_audio)
-    if len(wav_audio_size) > len(wav_audio.size()):
-        wav_audio = wav_audio.unsqueeze(0)
+    wav_audio = scale_audio_to_size(
+        wav_audio, wav_audio_size, 0 if wav_audio_size[0] > 1 else 1
+    )
 
     assert (
         wav_audio_size == wav_audio.size()

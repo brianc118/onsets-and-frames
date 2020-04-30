@@ -26,12 +26,14 @@ AUDIO_TRANSFORM_PIPELINE_TORCH = [
             "gain_db": (5, 5.0, "linear"),
         },
     ),
+    # Reverb (for now just single-parameter).
+    # ("reverb", {"reverberance": (70.0, 70.0, "linear"),}),
 ]
 
 FILENAMES = [
     # "onsets_and_frames/test/assets/sinewave.wav",
     # "onsets_and_frames/test/assets/steam-train-whistle-daniel_simon.wav",
-    "onsets_and_frames/test/assets/440Hz_44100Hz_16bit_05sec.wav",
+    # "onsets_and_frames/test/assets/440Hz_44100Hz_16bit_05sec.wav",
     "onsets_and_frames/test/assets/MAPS_MUS-alb_esp2_AkPnCGdD.wav",
 ]
 
