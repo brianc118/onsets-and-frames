@@ -195,6 +195,36 @@ class MAPS(PianoRollAudioDataset):
 
         return sorted(zip(flacs, tsvs))
 
+class GuitarSet(PianoRollAudioDataset):
+    def __init__(self, path='data/guitarset', groups=None, sequence_length=None, seed=42, device=DEFAULT_DEVICE, transform=None):
+        super().__init__(path, groups if groups is not None else ['default'], sequence_length, seed, device, transform)
+
+    @classmethod
+    def available_groups(cls):
+        return ['default']
+    
+    def files(self, group):
+        if group not in self.available_groups():
+            return []
+        
+        flacs = sorted(glob(os.path.join(self.path, '*.flac')))
+        if len(flacs) == 0:
+            flacs = sorted(glob(os.path.join(self.path, '*.wav')))
+
+        midis = sorted(glob(os.path.join(self.path, '*.mid')))
+        files = list(zip(flacs, midis))
+        if len(files) == 0:
+            raise RuntimeError(f'Group {group} is empty')
+        
+        result = []
+        for audio_path, midi_path in files:
+            tsv_filename = midi_path.replace('.midi', '.tsv').replace('.mid', '.tsv')
+            if not os.path.exists(tsv_filename):
+                midi = parse_midi(midi_path)
+                np.savetxt(tsv_filename, midi, fmt='%.6f', delimiter='\t', header='onset,offset,note,velocity')
+            result.append((audio_path, tsv_filename))
+        return result
+
 class ShuffledDataset(Dataset):
     def __init__(self, datasets, probabilities):
         assert(sum(probabilities) == 1)
