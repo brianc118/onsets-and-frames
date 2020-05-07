@@ -17,10 +17,17 @@ from onsets_and_frames import *
 eps = sys.float_info.epsilon
 
 
-def evaluate(data, model, onset_threshold=0.5, frame_threshold=0.5, save_path=None):
+def evaluate(data, model, device, onset_threshold=0.5, frame_threshold=0.5, save_path=None):
     metrics = defaultdict(list)
 
     for label in data:
+        label['audio'] = label['audio'].to(device)
+        label['label'] = label['label'].to(device)
+        label['velocity'] = label['velocity'].to(device)
+        label['onset'] = label['onset'].to(device)
+        label['offset'] = label['offset'].to(device)
+        label['frame'] = label['frame'].to(device)
+
         pred, losses = model.run_on_batch(label)
 
         for key, loss in losses.items():
@@ -103,7 +110,7 @@ def evaluate_file(model_file, dataset, dataset_group, dataset_path, sequence_len
     model = torch.load(model_file, map_location=device).eval()
     summary(model)
 
-    metrics = evaluate(tqdm(dataset), model, onset_threshold, frame_threshold, save_path)
+    metrics = evaluate(tqdm(dataset), model, device, onset_threshold, frame_threshold, save_path)
 
     for key, values in metrics.items():
         if key.startswith('metric/'):

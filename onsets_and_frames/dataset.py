@@ -13,11 +13,13 @@ from .midi import parse_midi
 
 
 class PianoRollAudioDataset(Dataset):
-    def __init__(self, path, groups=None, sequence_length=None, seed=42, device=DEFAULT_DEVICE, transform=None):
+    def __init__(self, path, groups=None, sequence_length=None, seed=42, device=DEFAULT_DEVICE, gpu_tensor=False, in_memory=False, transform=None):
         self.path = path
         self.groups = groups if groups is not None else self.available_groups()
         self.sequence_length = sequence_length
         self.device = device
+        self.gpu_tensor = gpu_tensor
+        self.in_memory = in_memory
         self.transform = transform
         self.random = np.random.RandomState(seed)
 
@@ -26,10 +28,13 @@ class PianoRollAudioDataset(Dataset):
               f"of {self.__class__.__name__} at {path}")
         for group in groups:
             for input_files in tqdm(self.files(group), desc=f"Loading group {group} from {path}"):
-                self.data.append(self.load(*input_files))
+                if in_memory:
+                    self.data.append(self.load(*input_files))
+                else:
+                    self.data.append(tuple(input_files))
 
     def __getitem__(self, index):
-        data = self.data[index]
+        data = self.data[index] if self.in_memory else self.load(*self.data[index])
         result = dict(path=data['path'])
 
         if self.sequence_length is not None:
@@ -44,18 +49,18 @@ class PianoRollAudioDataset(Dataset):
             end = begin + self.sequence_length
             
             if self.transform:
-                result['audio'] = self.transform(data['audio'][begin:end]).to(self.device)
+                result['audio'] = self.transform(data['audio'][begin:end]).to(self.device) if self.gpu_tensor else self.transform(data['audio'][begin:end])
             else:
-                result['audio'] = data['audio'][begin:end].to(self.device)
-            result['label'] = data['label'][step_begin:step_end, :].to(self.device)
-            result['velocity'] = data['velocity'][step_begin:step_end, :].to(self.device)
+                result['audio'] = data['audio'][begin:end].to(self.device) if self.gpu_tensor else data['audio'][begin:end]
+            result['label'] = data['label'][step_begin:step_end, :].to(self.device) if self.gpu_tensor else data['label'][step_begin:step_end, :]
+            result['velocity'] = data['velocity'][step_begin:step_end, :].to(self.device) if self.gpu_tensor else data['velocity'][step_begin:step_end, :]
         else:
             if self.transform:
-                result['audio'] = self.transform(data['audio']).to(self.device)
+                result['audio'] = self.transform(data['audio']).to(self.device) if self.gpu_tensor else self.transform(data['audio'])
             else:
-                result['audio'] = data['audio'].to(self.device)
-            result['label'] = data['label'].to(self.device)
-            result['velocity'] = data['velocity'].to(self.device).float()
+                result['audio'] = data['audio'].to(self.device) if self.gpu_tensor else data['audio']
+            result['label'] = data['label'].to(self.device) if self.gpu_tensor else data['label']
+            result['velocity'] = data['velocity'].to(self.device).float() if self.gpu_tensor else data['velocity']
 
         result['audio'] = result['audio'].float().div_(32768.0)
         result['onset'] = (result['label'] == 3).float()

@@ -108,7 +108,7 @@ def train(logdir, device, iterations, resume_iteration, checkpoint_interval, tra
         dataset = MAPS(groups=['AkPnBcht', 'AkPnBsdf', 'AkPnCGdD', 'AkPnStgb', 'SptkBGAm', 'SptkBGCl', 'StbgTGd2'], sequence_length=sequence_length, transform=transform)
         validation_datasets = [MAPS(groups=['ENSTDkAm', 'ENSTDkCl'], sequence_length=validation_length)]
 
-    loader = DataLoader(dataset, batch_size, shuffle=True, drop_last=True)
+    loader = DataLoader(dataset, batch_size, shuffle=True, drop_last=True, num_workers=1, pin_memory=True)
 
     if resume_iteration is None:
         model = OnsetsAndFrames(N_MELS, MAX_MIDI - MIN_MIDI + 1, model_complexity).to(device)
@@ -125,6 +125,12 @@ def train(logdir, device, iterations, resume_iteration, checkpoint_interval, tra
 
     loop = tqdm(range(resume_iteration + 1, iterations + 1))
     for i, batch in zip(loop, cycle(loader)):
+        batch['audio'] = batch['audio'].to(device)
+        batch['label'] = batch['label'].to(device)
+        batch['velocity'] = batch['velocity'].to(device)
+        batch['onset'] = batch['onset'].to(device)
+        batch['offset'] = batch['offset'].to(device)
+        batch['frame'] = batch['frame'].to(device)
         predictions, losses = model.run_on_batch(batch)
 
         loss = sum(losses.values())
