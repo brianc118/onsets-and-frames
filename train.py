@@ -103,10 +103,10 @@ def train(logdir, device, iterations, resume_iteration, checkpoint_interval, tra
         transform = lambda x: transform_wav_audio(x, SAMPLE_RATE, transform_audio_pipeline, sox_only=sox_only)
     if train_on == 'MAESTRO':
         dataset = ShuffledDataset([MAESTRO(maestro_path, groups=train_groups, sequence_length=sequence_length, transform=transform) for maestro_path in maestro_paths], maestro_probabilities)
-        validation_dataset = MAESTRO(evaluate_maestro_path, groups=validation_groups, sequence_length=sequence_length)
+        validation_datasets = [MAESTRO(evaluate_maestro_path, groups=validation_groups, sequence_length=validation_length), GuitarSet(sequence_length=None)]
     else:
         dataset = MAPS(groups=['AkPnBcht', 'AkPnBsdf', 'AkPnCGdD', 'AkPnStgb', 'SptkBGAm', 'SptkBGCl', 'StbgTGd2'], sequence_length=sequence_length, transform=transform)
-        validation_dataset = MAPS(groups=['ENSTDkAm', 'ENSTDkCl'], sequence_length=validation_length)
+        validation_datasets = [MAPS(groups=['ENSTDkAm', 'ENSTDkCl'], sequence_length=validation_length)]
 
     loader = DataLoader(dataset, batch_size, shuffle=True, drop_last=True)
 
@@ -142,8 +142,9 @@ def train(logdir, device, iterations, resume_iteration, checkpoint_interval, tra
         if i % validation_interval == 0:
             model.eval()
             with torch.no_grad():
-                for key, value in evaluate(validation_dataset, model).items():
-                    writer.add_scalar('validation/' + key.replace(' ', '_'), np.mean(value), global_step=i)
+                for j, validation_dataset in enumerate(validation_datasets):
+                    for key, value in evaluate(validation_dataset, model, device).items():
+                        writer.add_scalar(f'val/{type(validation_dataset).__name__}_{j}/' + key.replace(' ', '_'), np.mean(value), global_step=i)
             model.train()
 
         if i % checkpoint_interval == 0:
