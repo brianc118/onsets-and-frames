@@ -13,9 +13,10 @@ COUNTER=0
 for f in guitarset/*.jams; do
     COUNTER=$((COUNTER + 1))
     echo -ne "\rConverting ($COUNTER/361) ..."
-    python3 ../jams_to_midi.py $f ${f/\.jams/.mid}
+    python3 ../to_midi.py $f ${f/\.jams/.mid}
 done
 
+echo
 echo Converting the audio files to FLAC ...
 COUNTER=0
 for f in guitarset/*.wav; do
