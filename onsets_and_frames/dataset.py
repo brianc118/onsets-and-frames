@@ -144,8 +144,8 @@ class PianoRollAudioDataset(Dataset):
 
 class MAESTRO(PianoRollAudioDataset):
 
-    def __init__(self, path, groups=None, sequence_length=None, seed=42, device=DEFAULT_DEVICE, transform=None):
-        super().__init__(path, groups if groups is not None else ['train'], sequence_length, seed, device, transform)
+    def __init__(self, path, groups=None, sequence_length=None, seed=42, device=DEFAULT_DEVICE, gpu_tensor=False, in_memory=False, transform=None):
+        super().__init__(path, groups if groups is not None else ['train'], sequence_length, seed, device, gpu_tensor, in_memory, transform)
 
     @classmethod
     def available_groups(cls):
@@ -180,8 +180,8 @@ class MAESTRO(PianoRollAudioDataset):
 
 
 class MAPS(PianoRollAudioDataset):
-    def __init__(self, path='data/MAPS', groups=None, sequence_length=None, seed=42, device=DEFAULT_DEVICE, transform=None):
-        super().__init__(path, groups if groups is not None else ['ENSTDkAm', 'ENSTDkCl'], sequence_length, seed, device, transform)
+    def __init__(self, path='data/MAPS', groups=None, sequence_length=None, seed=42, device=DEFAULT_DEVICE, gpu_tensor=False, in_memory=False, transform=None):
+        super().__init__(path, groups if groups is not None else ['ENSTDkAm', 'ENSTDkCl'], sequence_length, seed, device, gpu_tensor, in_memory, transform)
 
     @classmethod
     def available_groups(cls):
@@ -201,8 +201,8 @@ class MAPS(PianoRollAudioDataset):
         return sorted(zip(flacs, tsvs))
 
 class GuitarSet(PianoRollAudioDataset):
-    def __init__(self, path='data/guitarset', groups=None, sequence_length=None, seed=42, device=DEFAULT_DEVICE, transform=None):
-        super().__init__(path, groups if groups is not None else ['default'], sequence_length, seed, device, transform)
+    def __init__(self, path='data/guitarset', groups=None, sequence_length=None, seed=42, device=DEFAULT_DEVICE, gpu_tensor=False, in_memory=False, transform=None):
+        super().__init__(path, groups if groups is not None else ['default'], sequence_length, seed, device, gpu_tensor, in_memory, transform)
 
     @classmethod
     def available_groups(cls):
