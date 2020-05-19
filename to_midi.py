@@ -38,12 +38,15 @@ def gt_to_midi(gt, shift=0):
         st, freq, dur = float(row[0]), float(row[1]), float(row[2])
         if freq > 0:
             pitch = int(round(librosa.hz_to_midi(freq))) + shift
-            n = pretty_midi.Note(
-                velocity=100,
-                pitch=pitch, start=st,
-                end=st + dur
-            )
-            midi_ch.notes.append(n)
+            if pitch == 128 and librosa.hz_to_midi(freq) < 128:
+                pitch = 127
+            if pitch >= 0 and pitch <= 127:
+                n = pretty_midi.Note(
+                    velocity=100,
+                    pitch=pitch, start=st,
+                    end=st + dur
+                )
+                midi_ch.notes.append(n)
     if len(midi_ch.notes) != 0:
         midi.instruments.append(midi_ch)
     return midi
