@@ -103,7 +103,11 @@ def train(logdir, device, iterations, resume_iteration, checkpoint_interval, tra
         transform = lambda x: transform_wav_audio(x, SAMPLE_RATE, transform_audio_pipeline, sox_only=sox_only)
     if train_on == 'MAESTRO':
         dataset = ShuffledDataset([MAESTRO(maestro_path, groups=train_groups, sequence_length=sequence_length, transform=transform) for maestro_path in maestro_paths], maestro_probabilities)
-        validation_datasets = [MAESTRO(evaluate_maestro_path, groups=validation_groups, sequence_length=validation_length), GuitarSet(sequence_length=None, in_memory=True)]
+        validation_datasets = [
+            MAESTRO(evaluate_maestro_path, groups=validation_groups, sequence_length=validation_length),
+            GuitarSet(sequence_length=None, in_memory=True),
+            TraditionalFluteDataset(sequence_length=None, in_memory=True),
+        ]
     else:
         dataset = MAPS(groups=['AkPnBcht', 'AkPnBsdf', 'AkPnCGdD', 'AkPnStgb', 'SptkBGAm', 'SptkBGCl', 'StbgTGd2'], sequence_length=sequence_length, transform=transform)
         validation_datasets = [MAPS(groups=['ENSTDkAm', 'ENSTDkCl'], sequence_length=validation_length)]
