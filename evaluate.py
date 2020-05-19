@@ -100,7 +100,7 @@ def evaluate(data, model, device, onset_threshold=0.5, frame_threshold=0.5, save
 def evaluate_file(model_file, dataset, dataset_group, dataset_path, sequence_length, save_path,
                   onset_threshold, frame_threshold, device):
     dataset_class = getattr(dataset_module, dataset)
-    kwargs = {'sequence_length': sequence_length, 'device': device}
+    kwargs = {'sequence_length': sequence_length, 'device': device, 'gpu_tensor': True, 'in_memory': True}
     if dataset_group is not None:
         kwargs['groups'] = [dataset_group]
     if dataset_path is not None:
