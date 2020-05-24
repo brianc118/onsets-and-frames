@@ -26,7 +26,7 @@ parser.add_argument(
     action="store_const",
     const=True,
     default=False,
-    help="Dry run",
+    help="Keep .pt files",
 )
 argcomplete.autocomplete(parser)
 args = parser.parse_args()
