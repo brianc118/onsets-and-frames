@@ -116,7 +116,32 @@ def evaluate_file(model_file, dataset, dataset_group, dataset_path, sequence_len
         if key.startswith('metric/'):
             _, category, name = key.split('/')
             print(f'{category:>32} {name:25}: {np.mean(values):.3f} ± {np.std(values):.3f}')
+    return metrics
 
+def evaluate_files(model_files, dataset, dataset_group, dataset_path, sequence_length, save_path,
+                  onset_threshold, frame_threshold, device):
+    dataset_class = getattr(dataset_module, dataset)
+    kwargs = {'sequence_length': sequence_length, 'device': device, 'gpu_tensor': True, 'in_memory': True}
+    if dataset_group is not None:
+        kwargs['groups'] = [dataset_group]
+    if dataset_path is not None:
+        kwargs['path'] = dataset_path
+    dataset = dataset_class(**kwargs)
+
+    metrics_list = []
+
+    print(f"Running {len(model_files)} models on dataset.")
+    for model_file in tqdm(model_files):
+        model = torch.load(model_file, map_location=device).eval()
+        # summary(model)
+        # metrics = evaluate(tqdm(dataset), model, device, onset_threshold, frame_threshold, save_path)
+        # for key, values in metrics.items():
+        #     if key.startswith('metric/'):
+        #         _, category, name = key.split('/')
+        #         print(f'{category:>32} {name:25}: {np.mean(values):.3f} ± {np.std(values):.3f}')
+        # print(metrics)
+        # metrics_list.append(metrics)
+    return metrics_list
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

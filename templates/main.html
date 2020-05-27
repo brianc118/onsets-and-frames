@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Transcribe music</title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
+    <script src="https://cdn.jsdelivr.net/npm/@magenta/music@1.9.0"></script>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles/main.css')}}">
+</head>
+
+<body>
+    <div class="full" id="mainScreen">
+        <div class="content">
+            <h1><span id="modeText">transcribe</span><b>me</b></h1>
+
+
+            <section id="section_1">
+                <h2>Transcribe some music!</h2>
+
+                <p><a href="https://github.com/brianc118/onsets-and-frames">Onsets and frames</a>
+                    Hey this is something cool ;)</p>
+
+                <div id="beforeEvaluating">
+                    <!-- <form action="/transcribe" method=post enctype=multipart/form-data> -->
+                    <label class="button">
+                        <input id="fileSelector" , type="file" name="file">
+                    </label>
+                    <input id="transcribeBtn" , class="button" type=submit value=Transcribe>
+                    <!-- </form> -->
+                    <select class="form-control" id="modelName" name="model_name">
+                        {% for model_name in model_names %}
+                        <option value="{{model_name}}">{{model_name}}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div id="whileEvaluating" hidden>
+                    <p>Evaluating</p>
+                </div>
+
+                <div id="afterEvaluating" hidden>
+                    <p>And this is what that sample sounds like:</p>
+                    <div class="relative">
+                        <div class="visualizer-container cream">
+                            <button id="btnPlaySample" class="button-circle" aria-label="play">
+                                <svg class="iconPlay" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                    viewBox="0 0 24 24">
+                                    <path d="M8 5v14l11-7z" />
+                                    <path d="M0 0h24v24H0z" fill="none" /></svg>
+                                <svg class="iconStop" hidden xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                    viewBox="0 0 24 24">
+                                    <path d="M0 0h24v24H0z" fill="none" />
+                                    <path d="M6 6h12v12H6z" /></svg>
+                            </button>
+                            <svg id="vizSample"></svg>
+                        </div>
+                    </div>
+                    <br>
+                    <button id="saveBtn" class="button">save this sample</button>
+                    <br>
+                    <p id="helpMsg">The thing about MusicVAE is that it only knows generic music; when you ask it for
+                        a sample, it just picks something from the space of all possible melodies. It can't
+                        give you something that sounds more like Twinkle Twinkle Little Star, or more like your
+                        favourite Beatles song, without having to be retrained on a new corpus of data, and that
+                        takes several days on a really big GPU (not to mention millions of data points!)
+                        Enter....<b>Midi Me!</b></p>
+                </div>
+            </section>
+
+        </div>
+    </div>
+</body>
+<script src="{{ url_for('static', filename='js/script.js')}}"></script>
+
+</html>
