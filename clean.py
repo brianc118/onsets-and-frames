@@ -1,4 +1,3 @@
-import argcomplete
 import argparse
 import os
 import subprocess
@@ -28,7 +27,6 @@ parser.add_argument(
     default=False,
     help="Keep .pt files",
 )
-argcomplete.autocomplete(parser)
 args = parser.parse_args()
 
 

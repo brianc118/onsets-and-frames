@@ -28,6 +28,7 @@ def getfiletype(filename):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--cmd", default="ffmpeg")
+    parser.add_argument("--port", type=int, default=8080)
     args = parser.parse_args()
     with torch.no_grad():
         print("Loading models")
@@ -123,4 +124,4 @@ if __name__ == "__main__":
             except FileNotFoundError:
                 abort(404)
 
-        app.run(port=8080)
+        app.run(port=args.port)
