@@ -100,7 +100,7 @@ if __name__ == "__main__":
                         )
 
                         save_midi(midi_file.name, p_est, i_est, v_est)
-                        contents = {"b64_midi": b64encode(midi_file.read().decode())}
+                        contents = {"b64_midi": b64encode(midi_file.read()).decode()}
                     else:
                         with open("dummy.midi", "rb") as dummy_midi:
                             contents = {
