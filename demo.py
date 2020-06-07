@@ -4,6 +4,7 @@ import io
 import json
 import os
 import tempfile
+import threading
 from base64 import b64encode
 from tqdm import tqdm
 
@@ -40,7 +41,7 @@ if __name__ == "__main__":
             ).eval()
 
         app = Flask(__name__)
-        # app.config["CLIENT_MIDIS"] = ""
+        sem = threading.Semaphore()
 
         @app.route("/", methods=["GET"])
         def upload_file():
@@ -49,7 +50,7 @@ if __name__ == "__main__":
         @app.route("/transcribe", methods=["POST"])
         def get_transcription():
             if request.method == "POST":
-                print(request)
+                sem.acquire()
                 if "audio_file" not in request.files:
                     print("error did not upload a file")
                     return jsonify({"error": "Did not upload a file"})
@@ -80,7 +81,7 @@ if __name__ == "__main__":
                 ) as audio_file:
                     raw_audio_file.write(audio_bytes)
                     ffmpeg.input(raw_audio_file.name).output(
-                        audio_file.name, ac=1, ar=16000, format="wav"
+                        audio_file.name, ac=1, ar=16000, format="wav", loglevel="quiet"
                     ).overwrite_output().run(cmd=args.cmd)
                     if not DUMMY:
                         audio = load_and_process_audio(audio_file.name, None, DEVICE)
@@ -109,7 +110,7 @@ if __name__ == "__main__":
                             }
 
                 tempfile.tempdir = prev_tempdir
-
+                sem.release()
                 return jsonify(contents)
 
         @app.route("/get-midi/<path:midi_name>")
