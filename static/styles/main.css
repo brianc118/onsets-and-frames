@@ -218,14 +218,6 @@ section .index {
   pointer-events: none;
 }
 
-input[type="file"] {
-  width: 0;
-  height: 0;
-  opacity: 0;
-  cursor: pointer;
-  display: none;
-}
-
 input[type="tel"], input[type="text"] {
   border: none;
   border-bottom: 4px solid var(--blue);
