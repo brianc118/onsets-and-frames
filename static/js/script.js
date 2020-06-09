@@ -50,6 +50,9 @@ async function transcribeRequest() {
         fetch('/transcribe', { method: "POST", body: formData })
             .then(response => response.json())
             .then(data => {
+                if ("error" in data) {
+                    throw data;
+                }
                 console.log(data);
                 bytes = _base64ToArrayBuffer(data["b64_midi"]);
                 console.log(bytes);
