@@ -21,12 +21,10 @@
                 <h2>Transcribe some music!</h2>
 
                 <p><a href="https://github.com/brianc118/onsets-and-frames">Onsets and frames</a>
-                    transcribes music into MIDI representation! Note it only support audio files of up to 2 minutes.</p>
+                    transcribes music into MIDI representation!</p>
 
                 <div id="beforeEvaluating">
-                    <label class="button">
-                        <input id="fileSelector" type="file" name="file">
-                    </label>
+                    <input class="button" id="fileSelector" type="file" name="file">
                     <br>
                     <p>Select a pretrained model to use.</p>
                     <select class="form-control" id="modelName" name="model_name">
@@ -39,7 +37,7 @@
                 </div>
 
                 <div id="whileEvaluating" hidden>
-                    <p>Evaluating</p>
+                    <p>Evaluating ...</p>
                 </div>
 
                 <div id="afterEvaluating" hidden>
@@ -60,7 +58,7 @@
                         </div>
                     </div>
                     <br>
-                    <button id="saveBtn" class="button">save this sample</button>
+                    <input id="transcribeBtn" class="button" type=submit value=Download>
                     <br>
                 </div>
             </section>
