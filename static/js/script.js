@@ -14,6 +14,7 @@ init();
 function init() {
     transcribeBtn.addEventListener('click', transcribeRequest);
     btnPlaySample.addEventListener('click', (e) => play(e, 2));
+    downloadBtn.addEventListener('click', () => saveAs(new File([mm.sequenceProtoToMidi(currentSample)], 'of_sample.mid')));
 
     playerSample = new mm.SoundFontPlayer('https://storage.googleapis.com/magentadata/js/soundfonts/sgm_plus');
     playerSample.callbackObject = {
