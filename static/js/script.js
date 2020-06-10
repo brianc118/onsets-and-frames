@@ -52,6 +52,9 @@ async function transcribeRequest() {
             .then(data => {
                 console.log(data);
                 if ("error" in data) {
+                    beforeEvaluating.hidden = false;
+                    whileEvaluating.hidden = true;
+                    afterEvaluating.hidden = true;
                     return
                 }
                 bytes = _base64ToArrayBuffer(data["b64_midi"]);
