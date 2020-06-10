@@ -1,5 +1,6 @@
 #! /bin/bash
 
+pwd
 # Assumes flute dataset is located in ./traditional_flute_dataset/
 
 rm traditional_flute_dataset/audio/allemande_fifth_fragment_preston.*
@@ -9,7 +10,7 @@ mv traditional_flute_dataset/audio/allemande_fifth_fragment_preston_resampled.wa
 mv traditional_flute_dataset/audio/allemande_second_fragment_preston_resampled.wav \
    traditional_flute_dataset/audio/allemande_second_fragment_preston.wav
 
-conda activate pytorch
+# conda activate pytorch
 
 echo Converting annotation GT to MIDI
 COUNTER=0
@@ -19,9 +20,9 @@ for f in traditional_flute_dataset/ground_truth/*.gt; do
     if [[ "$f" == "traditional_flute_dataset/audio/allemande_fifth_fragment_preston" || 
           "$f" == "traditional_flute_dataset/audio/allemande_second_fragment_preston.wav" ]]
     then
-        python3 ../to_midi.py $f ${f/\.gt/.mid} --pitch_shift -2
+        python ../to_midi.py $f ${f/\.gt/.mid} --pitch_shift -2
     else
-        python3 ../to_midi.py $f ${f/\.gt/.mid}
+        python ../to_midi.py $f ${f/\.gt/.mid}
     fi  
 done
 
