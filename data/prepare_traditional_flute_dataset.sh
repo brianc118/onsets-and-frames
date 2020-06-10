@@ -2,12 +2,12 @@
 
 # Assumes flute dataset is located in ./traditional_flute_dataset/
 
-# rm traditional_flute_dataset/audio/allemande_fifth_fragment_preston.*
-# rm traditional_flute_dataset/audio/allemande_second_fragment_preston.*
-# mv traditional_flute_dataset/audio/allemande_fifth_fragment_preston_resampled.wav \
-#    traditional_flute_dataset/audio/allemande_fifth_fragment_preston.wav
-# mv traditional_flute_dataset/audio/allemande_second_fragment_preston_resampled.wav \
-#    traditional_flute_dataset/audio/allemande_second_fragment_preston.wav
+rm traditional_flute_dataset/audio/allemande_fifth_fragment_preston.*
+rm traditional_flute_dataset/audio/allemande_second_fragment_preston.*
+mv traditional_flute_dataset/audio/allemande_fifth_fragment_preston_resampled.wav \
+   traditional_flute_dataset/audio/allemande_fifth_fragment_preston.wav
+mv traditional_flute_dataset/audio/allemande_second_fragment_preston_resampled.wav \
+   traditional_flute_dataset/audio/allemande_second_fragment_preston.wav
 
 conda activate pytorch
 
