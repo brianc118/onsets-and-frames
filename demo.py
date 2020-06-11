@@ -69,7 +69,7 @@ if __name__ == "__main__":
                     sem.release()
                     return jsonify(
                         {
-                            "Error": f"Invalid file. Does not have extension from {str(ALLOWED_EXTENSIONS)}. Extension is {ext}."
+                            "error": f"Invalid file. Does not have extension from {str(ALLOWED_EXTENSIONS)}. Extension is {ext}."
                         }
                     )
                 try:
