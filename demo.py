@@ -20,7 +20,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 ALLOWED_EXTENSIONS = {"flac", "mp3", "wav"}
 ONSET_THRESHOLD = 0.5
 FRAME_THRESHOLD = 0.5
-SEQUENCE_LENGTH = 327680
+SEQUENCE_LENGTH = 327680 * 3
 
 
 def getfiletype(filename):
