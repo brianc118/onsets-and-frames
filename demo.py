@@ -54,16 +54,19 @@ if __name__ == "__main__":
                 sem.acquire()
                 if "audio_file" not in request.files:
                     print("error did not upload a file")
+                    sem.release()
                     return jsonify({"error": "Did not upload a file"})
                 audio_file = request.files["audio_file"]
                 if "model_name" not in request.values:
                     print("error no model name")
+                    sem.release()
                     return jsonify({"error": "Did not specify model_name"})
                 model_name = request.values["model_name"]
                 model = models[model_name]
                 ext = getfiletype(audio_file.filename)
                 if ext not in ALLOWED_EXTENSIONS:
                     # error
+                    sem.release()
                     return jsonify(
                         {
                             "Error": f"Invalid file. Does not have extension from {str(ALLOWED_EXTENSIONS)}. Extension is {ext}."
@@ -112,6 +115,7 @@ if __name__ == "__main__":
                                 }
                 except Exception as err:
                     print('Error handling transcribe request', err)
+                    sem.release()
                     return jsonify({"error": str(err)})
                 tempfile.tempdir = prev_tempdir
                 sem.release()
