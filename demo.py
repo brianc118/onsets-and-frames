@@ -20,6 +20,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 ALLOWED_EXTENSIONS = {"flac", "mp3", "wav"}
 ONSET_THRESHOLD = 0.5
 FRAME_THRESHOLD = 0.5
+SEQUENCE_LENGTH = 327680
 
 
 def getfiletype(filename):
@@ -68,47 +69,50 @@ if __name__ == "__main__":
                             "Error": f"Invalid file. Does not have extension from {str(ALLOWED_EXTENSIONS)}. Extension is {ext}."
                         }
                     )
-                audio_bytes = audio_file.read()
-                prev_tempdir = tempfile.tempdir
-                contents = {"error": "failed to transcribe"}
-                tempfile.tempdir = "/dev/shm"
-                with tempfile.NamedTemporaryFile(
-                    suffix="midi"
-                ) as midi_file, tempfile.NamedTemporaryFile(
-                    suffix=ext
-                ) as raw_audio_file, tempfile.NamedTemporaryFile(
-                    suffix="wav"
-                ) as audio_file:
-                    raw_audio_file.write(audio_bytes)
-                    ffmpeg.input(raw_audio_file.name).output(
-                        audio_file.name, ac=1, ar=16000, format="wav", loglevel="quiet"
-                    ).overwrite_output().run(cmd=args.cmd)
-                    if not DUMMY:
-                        audio = load_and_process_audio(audio_file.name, None, DEVICE)
-                        predictions = transcribe(model, audio)
-                        p_est, i_est, v_est = extract_notes(
-                            predictions["onset"],
-                            predictions["frame"],
-                            predictions["velocity"],
-                            ONSET_THRESHOLD,
-                            FRAME_THRESHOLD,
-                        )
+                try:
+                    audio_bytes = audio_file.read()
+                    prev_tempdir = tempfile.tempdir
+                    contents = {"error": "failed to transcribe"}
+                    tempfile.tempdir = "/dev/shm"
+                    with tempfile.NamedTemporaryFile(
+                        suffix="midi"
+                    ) as midi_file, tempfile.NamedTemporaryFile(
+                        suffix=ext
+                    ) as raw_audio_file, tempfile.NamedTemporaryFile(
+                        suffix="wav"
+                    ) as audio_file:
+                        raw_audio_file.write(audio_bytes)
+                        ffmpeg.input(raw_audio_file.name).output(
+                            audio_file.name, ac=1, ar=16000, format="wav", loglevel="quiet"
+                        ).overwrite_output().run(cmd=args.cmd)
+                        if not DUMMY:
+                            audio = load_and_process_audio(audio_file.name, SEQUENCE_LENGTH, DEVICE)
+                            predictions = transcribe(model, audio)
+                            p_est, i_est, v_est = extract_notes(
+                                predictions["onset"],
+                                predictions["frame"],
+                                predictions["velocity"],
+                                ONSET_THRESHOLD,
+                                FRAME_THRESHOLD,
+                            )
 
-                        scaling = HOP_LENGTH / SAMPLE_RATE
+                            scaling = HOP_LENGTH / SAMPLE_RATE
 
-                        i_est = (i_est * scaling).reshape(-1, 2)
-                        p_est = np.array(
-                            [midi_to_hz(MIN_MIDI + midi) for midi in p_est]
-                        )
+                            i_est = (i_est * scaling).reshape(-1, 2)
+                            p_est = np.array(
+                                [midi_to_hz(MIN_MIDI + midi) for midi in p_est]
+                            )
 
-                        save_midi(midi_file.name, p_est, i_est, v_est)
-                        contents = {"b64_midi": b64encode(midi_file.read()).decode()}
-                    else:
-                        with open("dummy.midi", "rb") as dummy_midi:
-                            contents = {
-                                "b64_midi": b64encode(dummy_midi.read()).decode()
-                            }
-
+                            save_midi(midi_file.name, p_est, i_est, v_est)
+                            contents = {"b64_midi": b64encode(midi_file.read()).decode()}
+                        else:
+                            with open("dummy.midi", "rb") as dummy_midi:
+                                contents = {
+                                    "b64_midi": b64encode(dummy_midi.read()).decode()
+                                }
+                except Exception as err:
+                    print('Error handling transcribe request', err)
+                    return jsonify({"error": str(err)})
                 tempfile.tempdir = prev_tempdir
                 sem.release()
                 return jsonify(contents)
