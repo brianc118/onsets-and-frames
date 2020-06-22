@@ -1,3 +1,14 @@
+# Automatic Music Transcription with Synthetic Data
+
+This repository introduces the following features to the original PyTorch implementation of Onsets and Frames:
+
+* Weighted sampling of datasets (which we call shuffling)
+* Online audio augmentation with SoX and TorchAudio
+
+It also contains `mds.py` and `tsne.py` which were used in visualising the timbre space of instruments.
+
+See my thesis for details :)
+
 # PyTorch Implementation of Onsets and Frames
 
 This is a [PyTorch](https://pytorch.org/) implementation of Google's [Onsets and Frames](https://magenta.tensorflow.org/onsets-frames) model, using the [Maestro dataset](https://magenta.tensorflow.org/datasets/maestro) for training and the Disklavier portion of the [MAPS database](http://www.tsi.telecom-paristech.fr/aao/en/2010/07/08/maps-database-a-piano-database-for-multipitch-estimation-and-automatic-transcription-of-music/) for testing.
@@ -6,17 +17,19 @@ This is a [PyTorch](https://pytorch.org/) implementation of Google's [Onsets and
 
 This project is quite resource-intensive; 32 GB or larger system memory and 8 GB or larger GPU memory is recommended. 
 
-### Downloading Dataset
+### Downloading Datasets
 
-The `data` subdirectory already contains the MAPS database. To download the Maestro dataset, first make sure that you have `ffmpeg` executable and run `prepare_maestro.sh` script:
+The `data` subdirectory already contains the MAPS database. To download the MAESTRO dataset, GuitarSet dataset and Traditional Flute Dataset, first make sure that you have `ffmpeg` executable. Then run the following:
 
 ```bash
 ffmpeg -version
 cd data
 ./prepare_maestro.sh
+./prepare_guitarset.sh
+./prepare_traditional_flute_dataset.sh
 ```
 
-This will download the full Maestro dataset from Google's server and automatically unzip and encode them as FLAC files in order to save storage. However, you'll still need about 200 GB of space for intermediate storage.
+This will require >200 GB of intermediate storage.
 
 ### Training
 
@@ -54,22 +67,4 @@ In order to test on the Maestro dataset's test split instead of the MAPS databas
 ```bash
 python evaluate.py runs/model/model-100000.pt Maestro test
 ```
-
-## Implementation Details
-
-This implementation contains a few of the additional improvements on the model that were reported in the Maestro paper, including:
-
-* Offset head
-* Increased model capacity, making it 26M parameters by default
-* Gradient stopping of inter-stack connections
-* L2 Gradient clipping of each parameter at 3
-* Using the HTK mel frequencies
-
-Meanwhile, this implementation does not include the following features:
-
-* Variable-length input sequences that slices at silence or zero crossings
-* Harmonically decaying weights on the frame loss
-
-Despite these, this implementation is able to achieve a comparable performance to what is reported on the Maestro paper as the performance without data augmentation.
-
 
